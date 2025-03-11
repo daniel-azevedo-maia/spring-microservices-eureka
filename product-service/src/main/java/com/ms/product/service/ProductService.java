@@ -3,18 +3,21 @@ package com.ms.product.service;
 import com.ms.product.dto.ProductDTO;
 import com.ms.product.entity.Product;
 import com.ms.product.repository.ProductRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ProductService {
 
-    @Autowired
-    private ProductRepository repository;
+    private final ProductRepository repository;
 
     public Product saveProduct(ProductDTO dto) {
+        log.info("Salvando produto: {}", dto);
         Product product = Product.builder()
                 .name(dto.getName())
                 .price(dto.getPrice())
@@ -24,12 +27,17 @@ public class ProductService {
     }
 
     public List<Product> listAll() {
+        log.info("Listando todos os produtos...");
         return repository.findAll();
     }
 
     public Product findById(Long id) {
+        log.info("Buscando produto com ID {}", id);
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+                .orElseThrow(() -> {
+                    log.error("Produto com ID {} não encontrado", id);
+                    return new RuntimeException("Produto não encontrado");
+                });
     }
 
     public ProductDTO convertToDTO(Product product) {
@@ -40,5 +48,4 @@ public class ProductService {
                 .stock(product.getStock())
                 .build();
     }
-
 }

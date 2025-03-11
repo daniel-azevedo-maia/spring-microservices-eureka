@@ -22,6 +22,5 @@ public class Order {
     private Long productId;
     private Integer quantity;
     private Double total;
-
     private LocalDateTime createdAt;
 }
