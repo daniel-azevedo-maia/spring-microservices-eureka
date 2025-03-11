@@ -1,0 +1,89 @@
+services:
+
+  postgres-user:
+    image: postgres:15
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: user_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5433:5432"
+    networks:
+      - micros_net
+
+  postgres-product:
+    image: postgres:15
+    container_name: postgres-product
+    environment:
+      POSTGRES_DB: product_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5434:5432"
+    networks:
+      - micros_net
+
+  postgres-order:
+    image: postgres:15
+    container_name: postgres-order
+    environment:
+      POSTGRES_DB: order_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5435:5432"
+    networks:
+      - micros_net
+
+  discovery-server:
+    build: ./discovery-server
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - micros_net
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    depends_on:
+      - postgres-user
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8081:8081"
+    networks:
+      - micros_net
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    depends_on:
+      - postgres-product
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8082:8082"
+    networks:
+      - micros_net
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    depends_on:
+      - postgres-order
+      - discovery-server
+      - product-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8083:8083"
+    networks:
+      - micros_net
+
+networks:
+  micros_net:
+    driver: bridge
