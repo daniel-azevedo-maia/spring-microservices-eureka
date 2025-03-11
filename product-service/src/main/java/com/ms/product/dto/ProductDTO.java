@@ -11,6 +11,8 @@ import lombok.*;
 @Builder
 public class ProductDTO {
 
+    private Long id;
+
     @NotBlank(message = "Nome é obrigatório")
     private String name;
 

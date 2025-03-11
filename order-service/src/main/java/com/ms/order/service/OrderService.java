@@ -5,20 +5,23 @@ import com.ms.order.dto.OrderDTO;
 import com.ms.order.dto.ProductDTO;
 import com.ms.order.entity.Order;
 import com.ms.order.repository.OrderRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class OrderService {
 
-    @Autowired
-    private OrderRepository repository;
+    private final OrderRepository repository;
+    private final ProductClient productClient;
 
-    @Autowired
-    private ProductClient productClient;
+    public void testComunication() {
+        ProductDTO product = productClient.getProductById(1L);
+        System.out.println("Produto encontrado via Feign: " + product.getName());
+    }
 
     public Order createOrder(OrderDTO dto) {
         // Consulta o produto pelo ID via Feign Client

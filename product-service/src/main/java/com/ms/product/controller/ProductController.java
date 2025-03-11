@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -18,17 +19,22 @@ public class ProductController {
     private ProductService service;
 
     @PostMapping
-    public ResponseEntity<Product> create(@RequestBody @Valid ProductDTO dto) {
-        return ResponseEntity.ok(service.saveProduct(dto));
+    public ResponseEntity<ProductDTO> create(@RequestBody @Valid ProductDTO dto) {
+        return ResponseEntity.ok(service.convertToDTO(service.saveProduct(dto)));
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> listAll() {
-        return ResponseEntity.ok(service.listAll());
+    public ResponseEntity<List<ProductDTO>> listAll() {
+        List<ProductDTO> dtos = service.listAll()
+                .stream()
+                .map(service::convertToDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.findById(id));
+    public ResponseEntity<ProductDTO> findById(@PathVariable Long id) {
+        Product product = service.findById(id);
+        return ResponseEntity.ok(service.convertToDTO(product));
     }
 }

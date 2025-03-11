@@ -1,23 +1,16 @@
 package com.ms.order.dto;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Data;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Data
 public class OrderDTO {
-
-    @NotNull(message = "O ID do usuário é obrigatório")
+    @NotNull
     private Long userId;
 
-    @NotNull(message = "O ID do produto é obrigatório")
+    @NotNull
     private Long productId;
 
-    @NotNull(message = "A quantidade é obrigatória")
-    @Min(value = 1, message = "A quantidade mínima é 1")
+    @NotNull
     private Integer quantity;
 }
