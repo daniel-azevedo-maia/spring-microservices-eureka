@@ -7,20 +7,24 @@
     <artifactId>microsservices</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
-
     <name>Microsservices Parent</name>
     <description>Parent POM para sistema de microsserviços</description>
+
+    <modules>
+        <module>discovery-server</module>
+        <module>user-service</module>
+        <module>order-service</module>
+        <module>product-service</module>
+    </modules>
 
     <properties>
         <java.version>17</java.version>
         <spring-boot.version>3.2.4</spring-boot.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
-        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Spring Boot BOM -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -28,8 +32,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
-            <!-- Spring Cloud BOM - NECESSÁRIO para resolver Eureka -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -41,26 +43,38 @@
     </dependencyManagement>
 
     <build>
+        <!-- Plugin Management já existente -->
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven.compiler.plugin.version}</version>
+                    <version>3.11.0</version>
                     <configuration>
-                        <release>${java.version}</release>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
                         <compilerArgs>
                             <arg>-parameters</arg>
                         </compilerArgs>
                     </configuration>
                 </plugin>
-
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <version>${spring-boot.version}</version>
-                </plugin>
             </plugins>
         </pluginManagement>
+
+        <!-- Plugins aplicados a todos os módulos -->
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 </project>
