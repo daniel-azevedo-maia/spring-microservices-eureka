@@ -22,6 +22,8 @@ public class OrderService {
 
     public Order createOrder(OrderDTO dto) {
         log.info("Buscando produto ID {} via FeignClient", dto.getProductId());
+
+        // O FeignClient faz uma chamada REST para ProductService
         ProductDTO product = productClient.getProductById(dto.getProductId());
 
         if (product == null || product.getId() == null) {

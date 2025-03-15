@@ -5,8 +5,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProductClientFallback implements ProductClient {
+
     @Override
     public ProductDTO getProductById(Long id) {
-        throw new RuntimeException("Fallback: Produto temporariamente indisponível.");
+        return ProductDTO.builder()
+                .id(id)
+                .name("Produto Indisponível")
+                .price(0.0)
+                .stock(0)
+                .build();
     }
 }

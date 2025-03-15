@@ -21,3 +21,26 @@ eureka:
   client:
     service-url:
       defaultZone: http://discovery-server:8761/eureka
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productServiceCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  retry:
+    instances:
+      productServiceRetry:
+        maxAttempts: 3
+        waitDuration: 2s
+
+  timelimiter:
+    instances:
+      productServiceTimeLimiter:
+        timeoutDuration: 3s

@@ -1,5 +1,6 @@
-services:
+version: "3.9"
 
+services:
   postgres-user:
     image: postgres:15
     container_name: postgres-user
@@ -29,7 +30,7 @@ services:
     networks:
       - micros_net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,7 +47,7 @@ services:
     networks:
       - micros_net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,13 +61,14 @@ services:
       - micros_net
     restart: on-failure
 
-
   user-service:
     build: ./user-service
     container_name: user-service
     depends_on:
-      - postgres-user
-      - discovery-server
+      postgres-user:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
     ports:
@@ -79,8 +81,10 @@ services:
     build: ./product-service
     container_name: product-service
     depends_on:
-      - postgres-product
-      - discovery-server
+      postgres-product:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
     ports:
@@ -93,9 +97,12 @@ services:
     build: ./order-service
     container_name: order-service
     depends_on:
-      - postgres-order
-      - discovery-server
-      - product-service
+      postgres-order:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      discovery-server:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
     ports:

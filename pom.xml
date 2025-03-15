@@ -15,6 +15,7 @@
         <module>user-service</module>
         <module>order-service</module>
         <module>product-service</module>
+        <module>api-gateway-service</module>
     </modules>
 
     <properties>
