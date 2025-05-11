@@ -1,0 +1,17 @@
+# config-server/src/main/resources/application.yml
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/daniel-azevedo-maia/spring-microservices-config-repo
+          default-label: main
+          search-paths:
+            - .
+          clone-on-start: true

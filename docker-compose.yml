@@ -1,7 +1,6 @@
-
 services:
 
-  # PostgreSQL para User Service
+  # ---------------------- Bancos PostgreSQL ----------------------
   postgres-user:
     image: postgres:15
     container_name: postgres-user
@@ -11,15 +10,13 @@ services:
       POSTGRES_PASSWORD: root
     ports:
       - "5433:5432"
-    networks:
-      - micros_net
+    networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # PostgreSQL para Product Service
   postgres-product:
     image: postgres:15
     container_name: postgres-product
@@ -29,15 +26,13 @@ services:
       POSTGRES_PASSWORD: root
     ports:
       - "5434:5432"
-    networks:
-      - micros_net
+    networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # PostgreSQL para Order Service
   postgres-order:
     image: postgres:15
     container_name: postgres-order
@@ -47,84 +42,93 @@ services:
       POSTGRES_PASSWORD: root
     ports:
       - "5435:5432"
-    networks:
-      - micros_net
+    networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Discovery Server (Eureka)
+  # -------------------- Infra-estrutura Spring --------------------
   discovery-server:
     build: ./discovery-server
     container_name: discovery-server
+    environment:
+      - SERVER_PORT=8761
     ports:
       - "8761:8761"
     networks:
       - micros_net
     restart: on-failure
 
-  # User Service
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks: [ micros_net ]
+    depends_on:
+      discovery-server:
+        condition: service_started
+    restart: on-failure
+
+  # ---------------------- Micro-serviços --------------------------
   user-service:
     build: ./user-service
     container_name: user-service
-    depends_on:
-      postgres-user:
-        condition: service_healthy
-      discovery-server:
-        condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
+
     ports:
       - "8081:8081"
-    networks:
-      - micros_net
+    networks: [ micros_net ]
+    depends_on:
+      config-server:
+        condition: service_started        # <-- NOVO
+      postgres-user:
+        condition: service_healthy
     restart: on-failure
 
-  # Product Service
   product-service:
     build: ./product-service
     container_name: product-service
-    depends_on:
-      postgres-product:
-        condition: service_healthy
-      discovery-server:
-        condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
+
     ports:
       - "8082:8082"
-    networks:
-      - micros_net
+    networks: [ micros_net ]
+    depends_on:
+      config-server:
+        condition: service_started        # <-- NOVO
+      postgres-product:
+        condition: service_healthy
     restart: on-failure
 
-  # Order Service
   order-service:
     build: ./order-service
     container_name: order-service
+
+    ports:
+      - "8083:8083"
+    networks: [ micros_net ]
     depends_on:
+      config-server:
+        condition: service_started        # <-- NOVO
       postgres-order:
         condition: service_healthy
       product-service:
         condition: service_started
       user-service:
         condition: service_started
-      discovery-server:
-        condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    ports:
-      - "8083:8083"
-    networks:
-      - micros_net
     restart: on-failure
 
-  # API Gateway
   api-gateway-service:
     build: ./api-gateway-service
     container_name: api-gateway-service
+
+    ports:
+      - "8084:8084"
+    networks: [ micros_net ]
     depends_on:
+      config-server:
+        condition: service_started        # <-- NOVO
       discovery-server:
         condition: service_started
       user-service:
@@ -133,14 +137,9 @@ services:
         condition: service_started
       order-service:
         condition: service_started
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    ports:
-      - "8084:8084"
-    networks:
-      - micros_net
     restart: on-failure
 
+# -----------------------------------------------------------------
 networks:
   micros_net:
     driver: bridge
