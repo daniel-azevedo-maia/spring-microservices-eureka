@@ -25,6 +25,7 @@
         <spring-cloud.version>2023.0.0</spring-cloud.version>
     </properties>
 
+    <!-- Define só os BOMs; nada mais aqui -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -41,15 +42,18 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-starter-config</artifactId>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
+    <!-- Dependências herdadas por todos os módulos -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+    </dependencies>
+
     <build>
-        <!-- Plugin Management já existente -->
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -67,7 +71,6 @@
             </plugins>
         </pluginManagement>
 
-        <!-- Plugins aplicados a todos os módulos -->
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

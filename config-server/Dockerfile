@@ -1,8 +1,5 @@
+# Dockerfile
 FROM openjdk:17-jdk-slim
-
-# Instala o git
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
 VOLUME /tmp
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} app.jar

@@ -3,62 +3,96 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+    <!-- ================================================================== -->
+    <!-- PARENT – herda BOMs (Spring Boot / Spring Cloud) e plugins comuns -->
+    <!-- ================================================================== -->
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>com.ms</groupId>
         <artifactId>microsservices</artifactId>
         <version>1.0.0</version>
-        <relativePath>../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath> <!-- volta 1 nível -->
     </parent>
 
+    <!-- ================================================================== -->
+    <!-- PROJETO                                                           -->
+    <!-- ================================================================== -->
+    <groupId>com.ms</groupId>
     <artifactId>api-gateway-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>api-gateway-service</name>
-    <description>Spring Cloud API Gateway Service</description>
+    <description>Spring Cloud API Gateway (WebFlux + Eureka Client)</description>
 
     <properties>
         <java.version>17</java.version>
     </properties>
 
+    <!-- ================================================================== -->
+    <!-- DEPENDÊNCIAS                                                      -->
+    <!-- ================================================================== -->
     <dependencies>
+
+        <!-- *** STACK REACTIVE *** -->
+        <dependency>
+            <!-- WebFlux ⇒ NÃO puxa Spring MVC -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Gateway (reactive) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <!-- Descoberta de serviços (Eureka Client) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- Cliente de Config (já herdado pelo starter-bootstrap no POM pai),
+             mas não faz mal declarar explicitamente -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
+        <!-- ====================== DEV / TEST ============================ -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- Exclui dependências de servlet test que vêm no starter-test -->
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-test</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
     </dependencies>
 
-
+    <!-- ================================================================== -->
+    <!-- BUILD (empacotamento JAR)                                         -->
+    <!-- ================================================================== -->
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <!-- nenhuma configuração extra necessária -->
             </plugin>
         </plugins>
     </build>
+
 </project>

@@ -1,149 +1,171 @@
+# Microsserviços Spring Boot com Docker Compose
 
-# Projeto Microsserviços com Spring Boot, Spring Cloud, Eureka, Gateway, Feign, Resilience4j e Docker
+Este repositório apresenta um **exemplo completo de arquitetura em microsserviços** usando **Java 17** e **Spring Boot 3**.  
+Ele foi construído para fins de estudo e referência, mostrando de forma prática como combinar:
 
-Este projeto demonstra a implementação de uma arquitetura de microsserviços moderna e escalável com as seguintes tecnologias:
-- ✅ Spring Boot
-- ✅ Spring Cloud Gateway
-- ✅ Eureka Server (Service Discovery)
-- ✅ Feign Client
-- ✅ Resilience4j (Circuit Breaker, Retry, Timeout)
-- ✅ Docker e Docker Compose
+* **Configuração centralizada** (`Config‑Server`)
+* **Descoberta de serviços** (`Eureka`)
+* **Gateway de entrada** (`Spring Cloud Gateway`)
+* **Comunicação resiliente** (OpenFeign + Resilience4j)
+* **Persistência isolada** (um banco PostgreSQL por domínio)
+* **Orquestração de containers** (Docker Compose)
 
----
-
-## 📦 Estrutura do Projeto
-
-```
-microsservices/
-├── discovery-server/           # Eureka Server (Service Registry)
-├── api-gateway-service/        # Gateway central para rotear requisições
-├── user-service/               # Microsserviço de usuários
-├── product-service/            # Microsserviço de produtos
-├── order-service/              # Microsserviço de pedidos
-└── docker-compose.yml          # Orquestração local com PostgreSQL e microsserviços
-```
+> **Autor:** Daniel Azevedo de Oliveira Maia  
+> 📧 daniel.azevedo.maia@hotmail.com · [LinkedIn](https://www.linkedin.com/in/daniel-azevedo-maia/)
 
 ---
 
-## 🔄 Como tudo funciona: Explicação Didática
+## 1. Visão geral funcional
 
-Imagine que João está no navegador e acessa:
+| Camada | Serviço | Porta | Descrição rápida |
+|--------|---------|-------|------------------|
+| **Configuração** | `config-server` | 8888 | Distribui arquivos `application-*.yml` guardados num repositório Git. |
+| **Descoberta** | `discovery-server` | 8761 | Registry Eureka; UI disponível na raiz. |
+| **Gateway** | `api-gateway-service` | 8084 | Porta única exposta ao cliente; roteia para os demais serviços. |
+| **Domínio** | `user-service` | 8081 | CRUD de usuários. |
+| | `product-service` | 8082 | CRUD de produtos. |
+| | `order-service` | 8083 | CRUD de pedidos; consome Users e Products. |
+| **Banco** | `postgres-user` | 5433 | Base de usuários. |
+| | `postgres-product` | 5434 | Base de produtos. |
+| | `postgres-order` | 5435 | Base de pedidos. |
 
-```
-http://localhost:8084/api/v1/users/123
-```
+Fluxo em alto nível:
 
-### O que acontece por trás:
-
-1️⃣ **Requisição entra no Gateway** (`api-gateway-service`)  
-2️⃣ O Gateway verifica se o path `/api/v1/users/**` corresponde a alguma rota:
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/v1/users/**
-          filters:
-            - StripPrefix=0
-```
-🔍 Aqui ele encontrou uma rota válida.
-
-3️⃣ O Gateway então consulta o **Eureka Server** para saber onde está o serviço `USER-SERVICE`.
-
-4️⃣ Eureka responde: “O serviço USER-SERVICE está rodando no IP X na porta 8081”.
-
-5️⃣ O **LoadBalancer Client (lb://)** distribui a requisição entre as instâncias disponíveis (balanceamento automático).
-
-6️⃣ A requisição é encaminhada ao **user-service** corretamente.
+1. **Inicialização**  
+   Docker Compose sobe primeiro os bancos, em seguida `discovery-server` e `config-server`.  
+   Cada microsserviço carrega suas configurações do Git, cadastra‑se no Eureka e fica pronto para receber chamadas.
+2. **Requisições externas**  
+   O cliente faz chamadas HTTP no Gateway (porta 8084).  
+   O Gateway consulta o Eureka para descobrir o endereço atual do serviço alvo e encaminha a requisição.
+3. **Chamadas internas**  
+   Serviços usam **OpenFeign** (`lb://SERVICE-NAME`) para falar entre si.  
+   Resilience4j adiciona *retry*, *circuit‑breaker* e *timeout* padrão.
 
 ---
 
-## 📡 Como o Gateway sabe onde está o Eureka?
-No arquivo `application.yml` do Gateway:
-```yaml
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-```
-👉 Isso conecta o Gateway ao Eureka Server.
+## 2. Organização Maven
+
+### POM **pai** (`microsservices`)
+
+* Define versões de **Spring Boot 3.2.4** e **Spring Cloud 2023.0.0**.
+* Importa BOMs oficiais, evitando conflitos de dependência.
+* Centraliza plugins (`maven-compiler-plugin`, `spring-boot-maven-plugin`).
+* Inclui `spring-cloud-starter-config`; todos os módulos filhos já sabem falar com o Config‑Server.
+
+Cada módulo (`user-service`, `product-service`, `order-service` …) herda essas definições e declara apenas dependências específicas (JPA, Feign, Resilience4j etc.).
 
 ---
 
-## 🔌 Comunicação interna entre microsserviços
-Exemplo no `order-service`, onde um pedido precisa consultar um produto:
-```java
-@FeignClient(name = "PRODUCT-SERVICE", path = "/api/products")
-public interface ProductClient {
-    @GetMapping("/{id}")
-    ProductDTO getProductById(@PathVariable("id") Long id);
-}
-```
-➡ Essa chamada vai para o Gateway? NÃO. Vai direto via Eureka, usando o nome `PRODUCT-SERVICE` para buscar a instância correta.
+## 3. Docker Compose resumido
+
+* **Healthchecks** garantem que os bancos estejam prontos antes de liberar os serviços dependentes.
+* Variável `SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888` aponta cada aplicação para o Config‑Server.
+* Rede dedicada `micros_net` permite que containers se resolvam pelo nome.
+
+Para detalhes completos, consulte o arquivo [`docker-compose.yml`](docker-compose.yml).
 
 ---
 
-## 🔐 Tolerância a Falhas com Resilience4j
+## 4. Pré‑requisitos
 
-No `order-service`, temos:
-```yaml
-resilience4j:
-  circuitbreaker:
-    instances:
-      productServiceCircuitBreaker:
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
+* Docker 20 ou superior + Docker Compose v2
+* Git (para clonar o projeto)  
+  *(Java e PostgreSQL são providos pelos containers, não precisam ser instalados localmente.)*
+
+---
+
+## 5. Como executar
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/daniel-azevedo-maia/spring-microservices-eureka.git
+cd spring-microservices-eureka
+
+# 2. Construa os JARs (primeira vez)
+./mvnw clean package -DskipTests
+
+# 3. Construa as imagens e suba a stack
+docker compose up --build -d
 ```
 
-Isso permite que falhas no `product-service` não derrubem o sistema inteiro. Se der erro, ativa o fallback:
-```java
-@Component
-public class ProductClientFallback implements ProductClient {
-    public ProductDTO getProductById(Long id) {
-        return ProductDTO.builder().id(id).name("Indisponível").price(0.0).stock(0).build();
-    }
-}
+Para verificar se tudo está de pé:
+
+```bash
+# Logs gerais
+docker compose logs -f
+
+# Logs específicos (exemplos)
+docker compose logs -f config-server
+docker compose logs -f discovery-server
+docker compose logs -f user-service
+```
+
+Serviços úteis:
+
+* Eureka Dashboard: <http://localhost:8761>
+* Swagger do Product Service: <http://localhost:8082/swagger-ui.html>
+
+---
+
+## 6. Endpoints de teste rápido
+
+### Produtos
+
+```bash
+# Listar produtos
+curl http://localhost:8084/api/v1/products
+
+# Criar novo produto
+curl -X POST http://localhost:8084/api/v1/products      -H "Content-Type: application/json"      -d '{"name":"Notebook Gamer","price":4999.90,"stock":15}'
+```
+
+### Usuários
+
+```bash
+curl -X POST http://localhost:8084/api/v1/users      -H "Content-Type: application/json"      -d '{"name":"Ana Silva","email":"ana@demo.dev","phone":"11999998888"}'
+```
+
+### Pedidos
+
+```bash
+curl -X POST http://localhost:8084/api/v1/orders      -H "Content-Type: application/json"      -d '{"userId":1,"productId":1,"quantity":2}'
 ```
 
 ---
 
-## 🐳 Orquestração com Docker Compose
+## 7. Tecnologias-chave
 
-O arquivo `docker-compose.yml` sobe:
-- 3 containers PostgreSQL (user, product, order)
-- discovery-server
-- user-service, product-service, order-service
-- api-gateway-service
-
-Exemplo:
-```yaml
-services:
-  postgres-user:
-    image: postgres:15
-    ports:
-      - "5433:5432"
-  discovery-server:
-    build: ./discovery-server
-    ports:
-      - "8761:8761"
-```
+| Categoria | Stack |
+|-----------|-------|
+| Linguagem / Runtime | Java 17, Spring Boot 3 |
+| Configuração | Spring Cloud Config Server / Client |
+| Descoberta | Spring Cloud Netflix Eureka |
+| Roteamento | Spring Cloud Gateway |
+| Comunicação | OpenFeign + Spring Cloud LoadBalancer |
+| Persistência | Spring Data JPA + PostgreSQL |
+| Resiliência | Resilience4j (CircuitBreaker, Retry, TimeLimiter) |
+| Containers | Docker, Docker Compose |
+| Build | Maven multi‑module |
 
 ---
 
-## 💡 Conclusão
+## 8. Roadmap
 
-Este projeto cobre os principais fundamentos de uma arquitetura moderna de microsserviços:
-- Registro e descoberta automática de serviços
-- Balanceamento de carga com Eureka + lb://
-- Tolerância a falhas com Circuit Breaker
-- Encapsulamento REST com FeignClient
-- Orquestração local com Docker Compose
-
-Ideal para estudos, projetos reais e entendimento de infraestrutura distribuída.
+- [ ] Autenticação **JWT** no Gateway
+- [ ] Observabilidade com **Prometheus, Grafana, Zipkin**
+- [ ] Mensageria assíncrona (**RabbitMQ** ou **Kafka**)
+- [ ] Pipeline **CI/CD** em GitHub Actions publicando imagens no Docker Hub
+- [ ] Deploy em ambiente gratuito (**Fly.io**, **Railway**)
+- [ ] Front‑end **Angular** consumindo o Gateway
+- [ ] Testes de integração com **Testcontainers** e contratos com **Spring Cloud Contract**
 
 ---
 
-👨‍💻 Projeto desenvolvido com foco didático, limpo e prático.
+## 9. Suporte
+
+Abra uma *issue* ou entre em contacto:
+
+* daniel.azevedo.maia@hotmail.com
+* <https://www.linkedin.com/in/daniel-azevedo-maia/>
+
+Obrigado por conferir este projeto!

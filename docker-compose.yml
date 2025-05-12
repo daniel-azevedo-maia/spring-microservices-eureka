@@ -1,6 +1,6 @@
 services:
 
-  # ---------------------- Bancos PostgreSQL ----------------------
+  # ---------- Bancos PostgreSQL ----------
   postgres-user:
     image: postgres:15
     container_name: postgres-user
@@ -8,8 +8,7 @@ services:
       POSTGRES_DB: user_service_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-    ports:
-      - "5433:5432"
+    ports: ["5433:5432"]
     networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -24,8 +23,7 @@ services:
       POSTGRES_DB: product_service_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-    ports:
-      - "5434:5432"
+    ports: ["5434:5432"]
     networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -40,8 +38,7 @@ services:
       POSTGRES_DB: order_service_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-    ports:
-      - "5435:5432"
+    ports: ["5435:5432"]
     networks: [ micros_net ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -49,40 +46,39 @@ services:
       timeout: 5s
       retries: 5
 
-  # -------------------- Infra-estrutura Spring --------------------
+  # ---------- Infra-estrutura ----------
   discovery-server:
     build: ./discovery-server
     container_name: discovery-server
     environment:
-      - SERVER_PORT=8761
-    ports:
-      - "8761:8761"
-    networks:
-      - micros_net
+      SERVER_PORT: 8761
+    ports: ["8761:8761"]
+    networks: [ micros_net ]
     restart: on-failure
 
   config-server:
     build: ./config-server
     container_name: config-server
-    ports:
-      - "8888:8888"
+    ports: ["8888:8888"]
     networks: [ micros_net ]
     depends_on:
       discovery-server:
         condition: service_started
     restart: on-failure
 
-  # ---------------------- Micro-serviços --------------------------
+  # ---------- Microsserviços ----------
   user-service:
     build: ./user-service
     container_name: user-service
-
-    ports:
-      - "8081:8081"
+    environment:
+      SPRING_APPLICATION_NAME: user-service
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_PROFILES_ACTIVE: docker
+    ports: ["8081:8081"]
     networks: [ micros_net ]
     depends_on:
       config-server:
-        condition: service_started        # <-- NOVO
+        condition: service_started
       postgres-user:
         condition: service_healthy
     restart: on-failure
@@ -90,13 +86,15 @@ services:
   product-service:
     build: ./product-service
     container_name: product-service
-
-    ports:
-      - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: product-service
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_PROFILES_ACTIVE: docker
+    ports: ["8082:8082"]
     networks: [ micros_net ]
     depends_on:
       config-server:
-        condition: service_started        # <-- NOVO
+        condition: service_started
       postgres-product:
         condition: service_healthy
     restart: on-failure
@@ -104,13 +102,15 @@ services:
   order-service:
     build: ./order-service
     container_name: order-service
-
-    ports:
-      - "8083:8083"
+    environment:
+      SPRING_APPLICATION_NAME: order-service
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_PROFILES_ACTIVE: docker
+    ports: ["8083:8083"]
     networks: [ micros_net ]
     depends_on:
       config-server:
-        condition: service_started        # <-- NOVO
+        condition: service_started
       postgres-order:
         condition: service_healthy
       product-service:
@@ -122,13 +122,15 @@ services:
   api-gateway-service:
     build: ./api-gateway-service
     container_name: api-gateway-service
-
-    ports:
-      - "8084:8084"
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway-service
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_PROFILES_ACTIVE: docker
+    ports: ["8084:8084"]
     networks: [ micros_net ]
     depends_on:
       config-server:
-        condition: service_started        # <-- NOVO
+        condition: service_started
       discovery-server:
         condition: service_started
       user-service:
@@ -139,7 +141,7 @@ services:
         condition: service_started
     restart: on-failure
 
-# -----------------------------------------------------------------
+# ---------- Rede ----------
 networks:
   micros_net:
     driver: bridge
